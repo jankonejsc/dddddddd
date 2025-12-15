@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KNOCHEN VOGEL - Tamagotchi</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=VT323&family=Press+Start+2P&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            font-family: 'VT323', monospace;
+            overflow: hidden;
+        }
+        
+        .device {
+            background: linear-gradient(145deg, #e8d5a3, #c9b896, #b8a67d);
+            border-radius: 30px 30px 50px 50px;
+            padding: 20px;
+            box-shadow: 
+                0 20px 60px rgba(0,0,0,0.5),
+                inset 0 2px 0 rgba(255,255,255,0.3),
+                inset 0 -5px 15px rgba(0,0,0,0.2);
+            position: relative;
+        }
+        
+        .device::before {
+            content: 'KNOCHEN VOGEL';
+            position: absolute;
+            top: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'Press Start 2P', cursive;
+            font-size: 8px;
+            color: #4a4a4a;
+            letter-spacing: 1px;
+        }
+        
+        .screen-frame {
+            background: #2d2d2d;
+            border-radius: 15px;
+            padding: 15px;
+            margin-top: 15px;
+            box-shadow: 
+                inset 0 5px 15px rgba(0,0,0,0.8),
+                0 2px 0 rgba(255,255,255,0.1);
+        }
+        
+        .lcd-screen {
+            width: 240px;
+            height: 200px;
+            background: #9ead86;
+            border-radius: 5px;
+            position: relative;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.3);
+            image-rendering: pixelated;
+            overflow: hidden;
+        }
+        
+        .lcd-screen::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(0,0,0,0.03) 2px,
+                rgba(0,0,0,0.03) 4px
+            );
+            pointer-events: none;
+            z-index: 10;
+        }
+        
+        .lcd-screen::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.1) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: 11;
+        }
+        
+        canvas {
+            display: block;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+        
+        .stats-bar {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 5px;
+            background: rgba(0,0,0,0.1);
+            border-radius: 3px;
+            margin-bottom: 5px;
+        }
+        
+        .stat {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            font-size: 10px;
+            color: #3d4a2d;
+        }
+        
+        .stat-icon {
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+        
+        .stat-bar {
+            width: 40px;
+            height: 6px;
+            background: #6b7a5a;
+            border-radius: 2px;
+            overflow: hidden;
+        }
+        
+        .stat-fill {
+            height: 100%;
+            background: #3d4a2d;
+            transition: width 0.3s;
+        }
+        
+        .age-display {
+            text-align: center;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 8px;
+            color: #3d4a2d;
+            padding: 5px;
+            border-top: 1px dashed #6b7a5a;
+            margin-top: 5px;
+        }
+        
+        .buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 20px;
+            padding: 10px;
+        }
+        
+        .btn {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 8px;
+            color: #fff;
+            transition: all 0.1s;
+            box-shadow: 
+                0 5px 0 rgba(0,0,0,0.3),
+                0 8px 15px rgba(0,0,0,0.3);
+        }
+        
+        .btn:active {
+            transform: translateY(3px);
+            box-shadow: 
+                0 2px 0 rgba(0,0,0,0.3),
+                0 3px 8px rgba(0,0,0,0.3);
+        }
+        
+        .btn-feed {
+            background: linear-gradient(145deg, #e74c3c, #c0392b);
+        }
+        
+        .btn-play {
+            background: linear-gradient(145deg, #3498db, #2980b9);
+        }
+        
+        .btn-sleep {
+            background: linear-gradient(145deg, #9b59b6, #8e44ad);
+        }
+        
+        .btn-heal {
+            background: linear-gradient(145deg, #27ae60, #1e8449);
+        }
+        
+        .message {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-family: 'Press Start 2P', cursive;
+            font-size: 6px;
+            color: #3d4a2d;
+            text-align: center;
+            white-space: nowrap;
+            animation: blink 0.5s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .decoration {
+            position: absolute;
+            bottom: 15px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 5px;
+        }
+        
+        .decoration span {
+            width: 8px;
+            height: 8px;
+            background: #8b7355;
+            border-radius: 50%;
+            box-shadow: inset 0 1px 2px rgba(255,255,255,0.3);
+        }
+        
+        .game-over-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(61, 74, 45, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s;
+        }
+        
+        .game-over-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+        
+        .game-over-text {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 12px;
+            color: #9ead86;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        
+        .restart-btn {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 8px;
+            padding: 10px 20px;
+            background: #9ead86;
+            color: #3d4a2d;
+            border: none;
+            cursor: pointer;
+        }
+        
+        .victory-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(154, 173, 134, 0.95);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 20;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s;
+        }
+        
+        .victory-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+        
+        .victory-text {
+            font-family: 'Press Start 2P', cursive;
+            font-size: 10px;
+            color: #3d4a2d;
+            text-align: center;
+            margin-bottom: 10px;
+        }
+        
+        .time-display {
+            position: absolute;
+            top: 5px;
+            right: 10px;
+            font-family: 'Press Start 2P', cursive;
+            font-size: 6px;
+            color: #3d4a2d;
+        }
+        
+        .speed-controls {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            margin-top: 10px;
+        }
+        
+        .speed-btn {
+            font-family: 'VT323', monospace;
+            font-size: 14px;
+            padding: 5px 10px;
+            background: #8b7355;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .speed-btn.active {
+            background: #5a4a3a;
+        }
+    </style>
+</head>
+<body>
+    <div class="device">
+        <div class="screen-frame">
+            <div class="lcd-screen">
+                <div class="stats-bar">
+                    <div class="stat">
+                        <span class="stat-icon">🍖</span>
+                        <div class="stat-bar"><div class="stat-fill" id="hunger-bar" style="width: 100%"></div></div>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-icon">😊</span>
+                        <div class="stat-bar"><div class="stat-fill" id="happy-bar" style="width: 100%"></div></div>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-icon">💤</span>
+                        <div class="stat-bar"><div class="stat-fill" id="energy-bar" style="width: 100%"></div></div>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-icon">❤️</span>
+                        <div class="stat-bar"><div class="stat-fill" id="health-bar" style="width: 100%"></div></div>
+                    </div>
+                </div>
+                <canvas id="game" width="240" height="120"></canvas>
+                <div class="age-display">
+                    ALTER: <span id="age">0</span> JAHRE
+                </div>
+                <div class="time-display" id="time-display">00:00:00</div>
+                <div class="message" id="message"></div>
+                
+                <div class="game-over-overlay" id="game-over">
+                    <div class="game-over-text">
+                        KNOCHEN VOGEL<br>IST GESTORBEN<br><br>
+                        ALTER: <span id="final-age">0</span> JAHRE
+                    </div>
+                    <button class="restart-btn" onclick="restartGame()">NEUSTART</button>
+                </div>
+                
+                <div class="victory-overlay" id="victory">
+                    <div class="victory-text">
+                        🏆 SIEG! 🏆<br><br>
+                        KNOCHEN VOGEL<br>
+                        IST 100 JAHRE<br>
+                        ALT GEWORDEN!<br><br>
+                        DU HAST GEWONNEN!
+                    </div>
+                    <button class="restart-btn" onclick="restartGame()">NOCHMAL</button>
+                </div>
+            </div>
+        </div>
+        
+        <div class="buttons">
+            <button class="btn btn-feed" onclick="feed()" title="Füttern">🍖</button>
+            <button class="btn btn-play" onclick="play()" title="Spielen">⚽</button>
+            <button class="btn btn-sleep" onclick="sleep()" title="Schlafen">💤</button>
+            <button class="btn btn-heal" onclick="heal()" title="Heilen">💊</button>
+        </div>
+        
+        <div class="decoration">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('game');
+        const ctx = canvas.getContext('2d');
+        
+        // Pixel-Farben für LCD-Look
+        const PIXEL_ON = '#3d4a2d';
+        const PIXEL_OFF = '#9ead86';
+        
+        // Spielstatus
+        let gameState = {
+            hunger: 100,
+            happiness: 100,
+            energy: 100,
+            health: 100,
+            age: 0,
+            totalSeconds: 0,
+            isAlive: true,
+            isSleeping: false,
+            isPlaying: false,
+            isEating: false,
+            animation: 0,
+            speedMultiplier: 10,
+            lastUpdate: Date.now()
+        };
+        
+        // Knochen Vogel Sprite (16x16 Pixel Art)
+        const birdSprites = {
+            normal: [
+                [0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0],
+                [0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0],
+                [0,0,0,1,0,0,1,0,0,1,0,0,1,0,0,0],
+                [0,0,1,0,0,0,0,0,0,0,0,0,0,1,0,0],
+                [0,0,1,0,0,0,0,0,0,0,0,0,0,1,0,0],
+                [0,1,0,0,0,1,1,1,1,1,1,0,0,0,1,0],
+                [0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0],
+                [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+                [1,0,1,1,0,0,0,0,0,0,0,0,1,1,0,1],
+                [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+                [0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0],
+                [0,1,0,0,0,0,1,1,1,1,0,0,0,0,1,0],
+                [0,0,1,0,0,0,0,0,0,0,0,0,0,1,0,0],
+                [0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,0],
+                [0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0],
+                [0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0]
+            ],
+            happy: [
+                [0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0],
+                [0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0],
+                [0,0,0,1,0,0,1,0,0,1,0,0,1,0,0,0],
+                [0,0,1,0,0,1,0,1,1,0,1,0,0,1,0,0],
+                [0,0,1,0,0,0,0,0,0,0,0,0,0,1,0,0],
+                [0,1,0,0,0,1,1,1,1,1,1,0,0,0,1,0],
+                [0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0],
+                [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+                [1,0,1,1,0,0,0,1,1,0,0,0,1,1,0,1],
+                [1,0,0,0,0,0,1,0,0,1,0,0,0,0,0,1],
+                [0,1,0,0,0,0,0,1,1,0,0,0,0,0,1,0],
+                [0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0],
+                [0,0,1,0,0,0,0,0,0,0,0,0,0,1,0,0],
+                [0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,0],
+                [0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0],
+                [0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0]
+            ],
+            sad: [
+                [0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0],
+                [0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0],
+                [0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0],
+                [0,0,1,0,0,0,1,0,0,1,0,0,0,1,0,0],
+                [0,0,1,0,0,0,0,0,0,0,0,0,0,1,0,0],
+                [0,1,0,0,0,1,1,1,1,1,1,0,0,0,1,0],
+                [0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0],
+                [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+                [1,0,1,1,0,0,0,0,0,0,0,0,1,1,0,1],
+                [1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1],
+                [0,1,0,0,0,0,1,0,0,1,0,0,0,0,1,0],
+                [0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0],
+                [0,0,1,0,0,0,0,0,0,0,0,0,0,1,0,0],
+                [0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,0],
+                [0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0],
+                [0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0]
+            ],
+            sleeping: [
+                [0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0],
+                [0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0],
+                [0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0],
+                [0,0,1,0,0,1,1,0,0,1,1,0,0,1,0,0],
+                [0,0,1,0,0,0,0,0,0,0,0,0,0,1,0,0],
+                [0,1,0,0,0,1,1,1,1,1,1,0,0,0,1,0],
+                [0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0],
+                [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+                [1,0,1,1,0,0,0,0,0,0,0,0,1,1,0,1],
+                [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+                [0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0],
+                [0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0],
+                [0,0,1,0,0,0,0,0,0,0,0,0,0,1,0,0],
+                [0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,0],
+                [0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0],
+                [0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0]
+            ],
+            dead: [
+                [0,0,0,0,0,1,1,1,1,1,1,0,0,0,0,0],
+                [0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0],
+                [0,0,0,1,0,1,0,1,1,0,1,0,1,0,0,0],
+                [0,0,1,0,0,0,1,0,0,1,0,0,0,1,0,0],
+                [0,0,1,0,0,1,0,0,0,0,1,0,0,1,0,0],
+                [0,1,0,0,0,1,1,1,1,1,1,0,0,0,1,0],
+                [0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0],
+                [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
+                [1,0,1,1,0,0,0,0,0,0,0,0,1,1,0,1],
+                [1,0,0,0,0,0,1,1,1,1,0,0,0,0,0,1],
+                [0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0],
+                [0,1,0,0,0,0,0,0,0,0,0,0,0,0,1,0],
+                [0,0,1,0,0,0,0,0,0,0,0,0,0,1,0,0],
+                [0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,0],
+                [0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0],
+                [0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0]
+            ]
+        };
+        
+        // Knochen für die Rippen
+        const bones = [
+            [0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0],
+            [0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0],
+            [0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0],
+            [0,0,0,1,0,0,0,0,0,0,0,0,1,0,0,0],
+            [0,0,1,1,1,1,1,1,1,1,1,1,1,1,0,0]
+        ];
+        
+        // Essen-Sprite
+        const foodSprite = [
+            [0,0,0,1,1,0,0,0],
+            [0,0,1,1,1,1,0,0],
+            [0,1,1,1,1,1,1,0],
+            [1,1,1,1,1,1,1,1],
+            [1,1,1,1,1,1,1,1],
+            [0,1,1,1,1,1,1,0],
+            [0,0,0,1,1,0,0,0],
+            [0,0,0,1,1,0,0,0]
+        ];
+        
+        // Z für Schlafen
+        const zSprite = [
+            [1,1,1,1],
+            [0,0,1,0],
+            [0,1,0,0],
+            [1,1,1,1]
+        ];
+        
+        // Herz für Heilen
+        const heartSprite = [
+            [0,1,1,0,1,1,0],
+            [1,1,1,1,1,1,1],
+            [1,1,1,1,1,1,1],
+            [0,1,1,1,1,1,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,1,0,0,0]
+        ];
+        
+        function drawPixel(x, y, size = 3) {
+            ctx.fillStyle = PIXEL_ON;
+            ctx.fillRect(x * size, y * size, size - 1, size - 1);
+        }
+        
+        function drawSprite(sprite, offsetX, offsetY, size = 3) {
+            for (let y = 0; y < sprite.length; y++) {
+                for (let x = 0; x < sprite[y].length; x++) {
+                    if (sprite[y][x] === 1) {
+                        drawPixel(offsetX + x, offsetY + y, size);
+                    }
+                }
+            }
+        }
+        
+        function getCurrentSprite() {
+            if (!gameState.isAlive) return birdSprites.dead;
+            if (gameState.isSleeping) return birdSprites.sleeping;
+            if (gameState.happiness < 30 || gameState.hunger < 30) return birdSprites.sad;
+            if (gameState.happiness > 70) return birdSprites.happy;
+            return birdSprites.normal;
+        }
+        
+        function draw() {
+            // Clear canvas
+            ctx.fillStyle = PIXEL_OFF;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // Draw bird
+            const sprite = getCurrentSprite();
+            const bobOffset = Math.sin(gameState.animation * 0.1) * (gameState.isSleeping ? 0.5 : 1);
+            drawSprite(sprite, 28, 10 + bobOffset, 4);
+            
+            // Draw bones (ribs) unter dem Vogel
+            drawSprite(bones, 26, 5, 4);
+            
+            // Draw sleeping Z's
+            if (gameState.isSleeping && gameState.isAlive) {
+                const zOffset = Math.floor(gameState.animation / 10) % 3;
+                drawSprite(zSprite, 55 + zOffset * 5, 5 - zOffset * 3, 2);
+            }
+            
+            // Draw eating animation
+            if (gameState.isEating) {
+                drawSprite(foodSprite, 10, 15, 2);
+            }
+            
+            // Draw playing animation
+            if (gameState.isPlaying) {
+                const ballY = 20 + Math.abs(Math.sin(gameState.animation * 0.2)) * 10;
+                ctx.beginPath();
+                ctx.arc(200, ballY * 2, 8, 0, Math.PI * 2);
+                ctx.fillStyle = PIXEL_ON;
+                ctx.fill();
+            }
+            
+            // Draw health warning
+            if (gameState.health < 30 && gameState.isAlive) {
+                if (Math.floor(gameState.animation / 5) % 2 === 0) {
+                    drawSprite(heartSprite, 5, 2, 2);
+                }
+            }
+        }
+        
+        function updateStats() {
+            document.getElementById('hunger-bar').style.width = gameState.hunger + '%';
+            document.getElementById('happy-bar').style.width = gameState.happiness + '%';
+            document.getElementById('energy-bar').style.width = gameState.energy + '%';
+            document.getElementById('health-bar').style.width = gameState.health + '%';
+            document.getElementById('age').textContent = gameState.age;
+            
+            // Zeit-Anzeige (Tage, Stunden, Minuten)
+            const totalDays = Math.floor(gameState.totalSeconds / 86400);
+            const remainingAfterDays = gameState.totalSeconds % 86400;
+            const hours = Math.floor(remainingAfterDays / 3600);
+            const minutes = Math.floor((remainingAfterDays % 3600) / 60);
+            document.getElementById('time-display').textContent = 
+                `TAG ${totalDays} - ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`;
+        }
+        
+        function showMessage(text) {
+            const msg = document.getElementById('message');
+            msg.textContent = text;
+            setTimeout(() => msg.textContent = '', 2000);
+        }
+        
+        function feed() {
+            if (!gameState.isAlive || gameState.isSleeping) return;
+            gameState.hunger = Math.min(100, gameState.hunger + 25);
+            gameState.isEating = true;
+            showMessage('LECKER!');
+            setTimeout(() => gameState.isEating = false, 1000);
+        }
+        
+        function play() {
+            if (!gameState.isAlive || gameState.isSleeping) return;
+            if (gameState.energy < 20) {
+                showMessage('ZU MÜDE!');
+                return;
+            }
+            gameState.happiness = Math.min(100, gameState.happiness + 20);
+            gameState.energy = Math.max(0, gameState.energy - 15);
+            gameState.isPlaying = true;
+            showMessage('SPASS!');
+            setTimeout(() => gameState.isPlaying = false, 1500);
+        }
+        
+        function sleep() {
+            if (!gameState.isAlive) return;
+            gameState.isSleeping = !gameState.isSleeping;
+            showMessage(gameState.isSleeping ? 'GUTE NACHT...' : 'GUTEN MORGEN!');
+        }
+        
+        function heal() {
+            if (!gameState.isAlive) return;
+            gameState.health = Math.min(100, gameState.health + 30);
+            showMessage('GEHEILT!');
+        }
+        
+        function checkDeath() {
+            if (gameState.hunger <= 0 || gameState.health <= 0) {
+                gameState.isAlive = false;
+                document.getElementById('final-age').textContent = gameState.age;
+                document.getElementById('game-over').classList.add('active');
+            }
+        }
+        
+        function checkVictory() {
+            if (gameState.age >= 100 && gameState.isAlive) {
+                document.getElementById('victory').classList.add('active');
+            }
+        }
+        
+        function restartGame() {
+            gameState = {
+                hunger: 100,
+                happiness: 100,
+                energy: 100,
+                health: 100,
+                age: 0,
+                totalSeconds: 0,
+                isAlive: true,
+                isSleeping: false,
+                isPlaying: false,
+                isEating: false,
+                animation: 0,
+                speedMultiplier: gameState.speedMultiplier,
+                lastUpdate: Date.now()
+            };
+            document.getElementById('game-over').classList.remove('active');
+            document.getElementById('victory').classList.remove('active');
+        }
+        
+        // Spiel-Loop
+        let lastGameTick = Date.now();
+        let accumulatedTime = 0;
+        
+        function gameLoop() {
+            const now = Date.now();
+            const delta = now - lastGameTick;
+            lastGameTick = now;
+            
+            if (gameState.isAlive && gameState.age < 100) {
+                // Zeit akkumulieren (mit Speed-Multiplikator)
+                accumulatedTime += delta * gameState.speedMultiplier;
+                
+                // Jede "Sekunde" im Spiel
+                while (accumulatedTime >= 1000) {
+                    accumulatedTime -= 1000;
+                    gameState.totalSeconds++;
+                    
+                    // Alter erhöht sich alle 43200 Sekunden (12 Stunden = 1 Jahr)
+                    // 100 Jahre = 50 Tage Echtzeit
+                    if (gameState.totalSeconds % 43200 === 0 && gameState.totalSeconds > 0) {
+                        gameState.age++;
+                        checkVictory();
+                    }
+                    
+                    // Stats verringern sich langsam über den Tag
+                    if (!gameState.isSleeping) {
+                        gameState.hunger = Math.max(0, gameState.hunger - 0.003);
+                        gameState.happiness = Math.max(0, gameState.happiness - 0.002);
+                        gameState.energy = Math.max(0, gameState.energy - 0.002);
+                    } else {
+                        // Schlafen regeneriert Energie aber erhöht Hunger
+                        gameState.energy = Math.min(100, gameState.energy + 0.01);
+                        gameState.hunger = Math.max(0, gameState.hunger - 0.002);
+                    }
+                    
+                    // Gesundheit sinkt wenn andere Stats niedrig
+                    if (gameState.hunger < 20 || gameState.energy < 10) {
+                        gameState.health = Math.max(0, gameState.health - 0.005);
+                    }
+                    
+                    checkDeath();
+                }
+            }
+            
+            // Animation
+            gameState.animation++;
+            
+            draw();
+            updateStats();
+            
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Start
+        gameLoop();
+    </script>
+</body>
+</html>
